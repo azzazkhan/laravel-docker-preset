@@ -1,0 +1,31 @@
+FROM serversideup/php:8.3-cli
+
+ENV PHP_OPCACHE_ENABLE=1
+ENV APP_BASE_DIR=/var/www
+ENV COMPOSER_ALLOW_SUPERUSER=0
+ENV PHP_MAX_EXECUTION_TIME=0
+
+WORKDIR /var/www
+
+USER root
+
+# Install and configure Node
+RUN curl -sL https://deb.nodesource.com/setup_20.x | bash -
+RUN apt-get update && apt-get install -y vim nodejs iputils-ping
+RUN npm i -g yarn
+
+# Install Bun and Deno
+RUN curl -fsSL https://bun.sh/install | bash
+RUN curl -fsSL https://deno.land/install.sh | sh
+
+# Install required PHP extensions
+RUN install-php-extensions bcmath decimal exif ffi gd grpc intl opcache pcntl \
+    pdo_mysql pdo_pgsql redis swoole
+
+# Clean up the image to remove stale packages
+RUN apt-get autoremove && apt-get autoclean
+
+# Add custom entrypoint startup script
+COPY --chmod=755 entrypoint.d/ /etc/entrypoint.d/
+
+USER www-data
