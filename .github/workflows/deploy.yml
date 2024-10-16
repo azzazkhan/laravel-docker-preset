@@ -21,6 +21,12 @@ jobs:
                   username: ${{ secrets.DOCKER_HUB_USER }}
                   password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
+            # Pull current images to prevent re-building unmodified layers
+            - name: Pull current images
+              run: |
+                  docker pull ${{ env.DOCKER_IMAGE_NAME }}:8.3-fpm \
+                      && docker pull ${{ env.DOCKER_IMAGE_NAME }}:8.3-cli
+
             - name: Build FPM image
               run: |
                   docker build \
