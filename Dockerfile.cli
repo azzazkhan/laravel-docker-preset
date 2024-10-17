@@ -25,11 +25,11 @@ RUN curl -fsSL https://deno.land/install.sh | sh
 RUN install-php-extensions bcmath decimal exif ffi gd grpc intl opcache pcntl \
     pdo_mysql pdo_pgsql redis swoole
 
-# Install MariaDB and Postgres client binaries (for database dumping)
+# Install MySQL and Postgres client binaries
 RUN curl -sS https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | tee /etc/apt/keyrings/pgdg.gpg >/dev/null \
     && echo "deb [signed-by=/etc/apt/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt jammy-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
     && apt-get update \
-    && apt-get install -y mariadb-client \
+    && apt-get install -y default-mysql-client \
     && apt-get install -y postgresql-client-$POSTGRES_VERSION
 
 # Clean up the image to remove stale packages
