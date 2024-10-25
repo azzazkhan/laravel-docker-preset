@@ -24,9 +24,22 @@ http {
     include       /etc/nginx/mime.types;
     default_type  application/octet-stream;
 
-    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+    # Check for `CF-Connecting-IP` header, if not present then use `X-Forwarded-For` header
+    map $http_cf_connecting_ip $real_client_ip {
+        default $http_cf_connecting_ip;
+        "" $http_x_forwarded_for;
+    }
+
+    # Check for `X-Forwarded-For` header, if not present then use remote IP
+    map $real_client_ip $final_client_ip {
+        default $real_client_ip;
+        "" $remote_addr;
+    }
+
+    log_format  main  '$final_client_ip - $remote_user [$time_local] "$request" '
                       '$status $body_bytes_sent "$http_referer" '
-                      '"$http_user_agent" "$http_x_forwarded_for"';
+                      '"$http_user_agent" "$http_x_forwarded_for"'
+                      '"$host"';
 
     access_log  /dev/stdout  main;
 
