@@ -51,5 +51,8 @@ http {
             default       "upgrade";
     }
 
+    fastcgi_read_timeout $NGINX_REQUEST_TIMEOUT;
+    client_max_body_size $NGINX_UPLOAD_LIMIT;
+
     include /etc/nginx/conf.d/*.conf;
 }
