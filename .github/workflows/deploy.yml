@@ -1,4 +1,4 @@
-name: Build and deploy application
+name: Build and publish images
 
 on:
     push:
@@ -9,10 +9,11 @@ env:
     DOCKER_IMAGE_NAME: ${{ vars.DOCKER_HUB_REPO }}
 
 jobs:
-    deploy:
+    build-cli:
+        name: Build CLI image
         runs-on: ubuntu-latest
         steps:
-            - name: Copy repository code
+            - name: Checkout repository
               uses: actions/checkout@v4
 
             - name: Login to Docker Hub
@@ -21,27 +22,79 @@ jobs:
                   username: ${{ secrets.DOCKER_HUB_USER }}
                   password: ${{ secrets.DOCKER_HUB_TOKEN }}
 
-            # Pull current images to prevent re-building unmodified layers
-            - name: Pull current images
-              run: |
-                  docker pull ${{ env.DOCKER_IMAGE_NAME }}:8.3-fpm \
-                      && docker pull ${{ env.DOCKER_IMAGE_NAME }}:8.3-cli
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
 
-            - name: Build FPM image
-              run: |
-                  docker build \
-                      -f Dockerfile.fpm \
-                      -t ${{ env.DOCKER_IMAGE_NAME }}:8.3-fpm \
-                      -t ${{ env.DOCKER_IMAGE_NAME }}:8.3-fpm-${{ github.sha }} \
-                      .
+            - name: Build and push image to registry
+              uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  file: Dockerfile.cli
+                  push: true
+                  tags: |
+                      ${{ env.DOCKER_IMAGE_NAME }}:cli
+                      ${{ env.DOCKER_IMAGE_NAME }}:cli-${{ github.sha }}
+                  cache-from: |
+                      type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:cli
+                      type=gha,scope=${{ github.workflow }}
+                  cache-to: type=gha,scope=${{ github.workflow }},mode=max
 
-            - name: Build CLI image
-              run: |
-                  docker build \
-                      -f Dockerfile.cli \
-                      -t ${{ env.DOCKER_IMAGE_NAME }}:8.3-cli \
-                      -t ${{ env.DOCKER_IMAGE_NAME }}:8.3-cli-${{ github.sha }} \
-                      .
+    build-fpm:
+        name: Build FPM image
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
 
-            - name: Push built image to Docker Hub
-              run: docker push ${{ env.DOCKER_IMAGE_NAME }} --all-tags
+            - name: Login to Docker Hub
+              uses: docker/login-action@v3
+              with:
+                  username: ${{ secrets.DOCKER_HUB_USER }}
+                  password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Build and push image to registry
+              uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  file: Dockerfile.fpm
+                  push: true
+                  tags: |
+                      ${{ env.DOCKER_IMAGE_NAME }}:fpm
+                      ${{ env.DOCKER_IMAGE_NAME }}:fpm-${{ github.sha }}
+                  cache-from: |
+                      type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:fpm
+                      type=gha,scope=${{ github.workflow }}
+                  cache-to: type=gha,scope=${{ github.workflow }},mode=max
+
+    build-fpm-nginx:
+        name: Build FPM NGINX image
+        runs-on: ubuntu-latest
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Login to Docker Hub
+              uses: docker/login-action@v3
+              with:
+                  username: ${{ secrets.DOCKER_HUB_USER }}
+                  password: ${{ secrets.DOCKER_HUB_TOKEN }}
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@v3
+
+            - name: Build and push image to registry
+              uses: docker/build-push-action@v6
+              with:
+                  context: .
+                  file: Dockerfile.fpm-nginx
+                  push: true
+                  tags: |
+                      ${{ env.DOCKER_IMAGE_NAME }}:fpm-nginx
+                      ${{ env.DOCKER_IMAGE_NAME }}:fpm-nginx-${{ github.sha }}
+                  cache-from: |
+                      type=registry,ref=${{ env.DOCKER_IMAGE_NAME }}:fpm-nginx
+                      type=gha,scope=${{ github.workflow }}
+                  cache-to: type=gha,scope=${{ github.workflow }},mode=max
